@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { AIProvider, AI_PROMPTS } from '../constants';
 import { LessonSchema, Lesson } from '../types/lesson';
+import { StorageService } from './storage.service';
 
 export class AIService {
   private static sanitizeBaseUrl(baseUrl?: string): string | undefined {
@@ -43,8 +44,9 @@ export class AIService {
   ): Promise<Lesson> {
     try {
       const model = this.getModel(provider, apiKey, modelId, baseUrl);
+      const effectiveModelId = modelId || (provider === AIProvider.GOOGLE ? 'gemini-2.0-flash' : 'gpt-4o');
 
-      const { object } = await generateObject({
+      const { object, usage, experimental_providerMetadata } = await generateObject({
         model,
         schema: LessonSchema,
         system: AI_PROMPTS.SYSTEM,
@@ -58,6 +60,23 @@ export class AIService {
           }
         ]
       });
+
+      // Track usage
+      if (usage) {
+        // Extract thought signature if available (provider specific)
+        const thoughtSignature = (experimental_providerMetadata as any)?.google?.thoughtSignature;
+        
+        await StorageService.saveTokenUsage({
+          modelId: effectiveModelId,
+          provider,
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+          totalTokens: usage.totalTokens,
+          thoughtSignature,
+          timestamp: Date.now(),
+          type: 'lesson'
+        });
+      }
 
       if (object.diagram) {
         object.diagram = this.cleanMermaidDiagram(object.diagram);

@@ -25,7 +25,7 @@ export const LessonModule = {
     const { sessionId, pageNumber, pageImageBase64, pageContextText, provider, apiKey, modelId, baseUrl, forceRefresh } = request;
 
     if (!forceRefresh) {
-      const cached = await StorageModule.getPageCache(sessionId, pageNumber);
+      const cached = await StorageService.getPageCache(sessionId, pageNumber);
       if (cached) {
         return cached.content;
       }
@@ -42,7 +42,7 @@ export const LessonModule = {
     );
 
     // Cache it
-    await StorageModule.savePageCache(sessionId, pageNumber, lesson, lesson.cleanedSourceText);
+    await StorageService.savePageCache(sessionId, pageNumber, lesson, lesson.cleanedSourceText);
 
     return lesson;
   }

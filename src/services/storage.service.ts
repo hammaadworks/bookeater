@@ -1,11 +1,11 @@
-import { db } from '../core/db';
+import { db, TokenUsage } from '../core/db';
 import { BookSession, Shelf } from '../types/session';
 
 /**
- * StorageModule: A deep module for managing persistence.
- * Locality: All DB interactions for books, shelves, and lessons.
+ * StorageService: A deep module for managing persistence.
+ * Locality: All DB interactions for books, shelves, lessons, and usage tracking.
  */
-export const StorageModule = {
+export const StorageService = {
   // Session Operations
   async saveSession(session: BookSession, fileData: ArrayBuffer) {
     await db.transaction('rw', db.books, db.bookFiles, async () => {
@@ -62,5 +62,18 @@ export const StorageModule = {
       pageSourceText: sourceText,
       generatedAt: Date.now()
     });
+  },
+
+  // Usage Tracking
+  async saveTokenUsage(usage: TokenUsage) {
+    return await db.tokenUsage.add(usage);
+  },
+
+  async getTokenUsage() {
+    return await db.tokenUsage.orderBy('timestamp').reverse().toArray();
+  },
+
+  async clearUsage() {
+    return await db.tokenUsage.clear();
   }
 };

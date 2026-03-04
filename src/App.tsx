@@ -105,7 +105,7 @@ function App() {
   }, []);
 
   return (
-    <div className="flex h-screen w-full bg-zinc-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-[#0F0F0F] overflow-hidden font-sans text-zinc-300">
       <input 
         type="file" 
         className="hidden" 
@@ -120,13 +120,13 @@ function App() {
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+          className="fixed inset-0 bg-black/70 z-40 md:hidden" 
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       <div 
-        className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out md:relative flex overflow-hidden ${
+        className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out md:relative flex overflow-hidden border-r border-[#222] ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         } ${isSidebarCollapsed ? 'md:w-0' : 'md:w-[260px]'}`}
       >
@@ -148,7 +148,7 @@ function App() {
       </div>
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden w-full">
-        <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-zinc-200 bg-white overflow-hidden relative">
+        <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-[#222] bg-[#141414] overflow-hidden relative">
           <SourceHeader 
             currentPage={currentPage}
             totalPages={totalPages}
