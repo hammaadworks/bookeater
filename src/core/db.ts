@@ -15,11 +15,24 @@ export interface BookFile {
   data: ArrayBuffer;   // Raw PDF
 }
 
+export interface TokenUsage {
+  id?: number;
+  modelId: string;
+  provider: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  thoughtSignature?: string;
+  timestamp: number;
+  type: 'lesson' | 'chat' | 'other';
+}
+
 export class BookEaterDB extends Dexie {
   shelves!: Table<Shelf>;
   books!: Table<BookSession>;
   lessons!: Table<LessonEntity>;
   bookFiles!: Table<BookFile>;
+  tokenUsage!: Table<TokenUsage>;
 
   constructor() {
     super('BookEaterDB');
@@ -48,6 +61,10 @@ export class BookEaterDB extends Dexie {
         book.shelfId = book.wrapId || 'default';
         delete book.wrapId;
       });
+    });
+
+    this.version(4).stores({
+      tokenUsage: '++id, modelId, provider, timestamp, type'
     });
   }
 }

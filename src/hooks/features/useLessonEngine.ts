@@ -17,7 +17,7 @@ export function useLessonEngine(currentPage: number, sessionId: string | null) {
         return;
       }
       try {
-        const cached = await StorageModule.getPageCache(sessionId, currentPage);
+        const cached = await StorageService.getPageCache(sessionId, currentPage);
         setLesson(cached ? cached.content : null);
       } catch (err) {
         console.error('Failed to load lesson cache', err);

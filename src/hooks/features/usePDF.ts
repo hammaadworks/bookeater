@@ -33,7 +33,7 @@ export function usePDF() {
       setTotalPages(result.totalPages);
       setCurrentPage(pageNum);
       
-      await StorageModule.updateSession(bookId, { 
+      await StorageService.updateSession(bookId, { 
         currentPage: pageNum, 
         lastOpened: Date.now() 
       });
@@ -46,7 +46,7 @@ export function usePDF() {
 
   const loadSession = useCallback(async (sessionId: string) => {
     try {
-      const session = await StorageModule.getSession(sessionId);
+      const session = await StorageService.getSession(sessionId);
       if (!session) throw new Error("Session not found");
 
       setCurrentSessionId(sessionId);
@@ -72,7 +72,7 @@ export function usePDF() {
         currentPage: 1,
       };
 
-      await StorageModule.saveSession(session, arrayBuffer);
+      await StorageService.saveSession(session, arrayBuffer);
       await loadSession(id);
     } catch (err: any) {
       setError(err.message);
@@ -92,9 +92,9 @@ export function usePDF() {
   }, [currentPage, isRendering, currentSessionId, loadPage]);
 
   // Delegated Storage Ops
-  const updateSession = (id: string, updates: Partial<BookSession>) => StorageModule.updateSession(id, updates);
+  const updateSession = (id: string, updates: Partial<BookSession>) => StorageService.updateSession(id, updates);
   const deleteSession = (id: string) => {
-    StorageModule.deleteSession(id);
+    StorageService.deleteSession(id);
     if (currentSessionId === id) {
       setCurrentSessionId(null);
       setPageImage(null);
@@ -103,10 +103,10 @@ export function usePDF() {
   };
   const createShelf = async (data: Omit<Shelf, 'id'>) => {
     const id = crypto.randomUUID();
-    return await StorageModule.saveShelf({ ...data, id } as Shelf);
+    return await StorageService.saveShelf({ ...data, id } as Shelf);
   };
-  const updateShelf = (id: string, updates: Partial<Shelf>) => StorageModule.saveShelf({ ...updates, id } as Shelf);
-  const deleteShelf = (id: string) => StorageModule.deleteShelf(id);
+  const updateShelf = (id: string, updates: Partial<Shelf>) => StorageService.saveShelf({ ...updates, id } as Shelf);
+  const deleteShelf = (id: string) => StorageService.deleteShelf(id);
 
   return { 
     sessions, shelves, currentSessionId, loadSession, loadPDF, 
