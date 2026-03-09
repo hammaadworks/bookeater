@@ -68,6 +68,8 @@
 - **Types**: Use TypeScript strictly. Define domain models in `src/types/`.
 - **Components**: Prefer functional components with hooks.
 - **Styling**: Use Tailwind CSS utility classes. Follow the `ui-ux-pro-max` skill guidelines for responsive and accessible UI.
+- **UX Rule**: Always give the best user experience possible, intuitive and accessible from the user's POV.
+- **Responsive Rule**: The UI must be adaptive to any screen (mobile to desktop), ensuring no overflow on any given resolution using relevant CSS strategies.
 - **Persistence**: All user data should persist locally. Avoid external servers for user data storage.
 - **AI**: Use structured outputs (Zod) when interacting with AI services to ensure data integrity.
 
