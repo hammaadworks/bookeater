@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
-import { AIService } from '../../services/ai.service';
 import { Lesson } from '../../types/lesson';
 import { AIProvider, APP_CONFIG } from '../../constants';
-import { db } from '../../core/db';
+import { StorageModule } from '../../services/storage.service';
+import { LessonModule } from '../../services/lesson.service';
 
 export function useLessonEngine(currentPage: number, sessionId: string | null) {
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -17,12 +17,8 @@ export function useLessonEngine(currentPage: number, sessionId: string | null) {
         return;
       }
       try {
-        const cachedLesson = await db.lessons.get([sessionId, currentPage]);
-        if (cachedLesson) {
-          setLesson(cachedLesson.content);
-        } else {
-          setLesson(null);
-        }
+        const cached = await StorageModule.getPageCache(sessionId, currentPage);
+        setLesson(cached ? cached.content : null);
       } catch (err) {
         console.error('Failed to load lesson cache', err);
         setLesson(null);
@@ -46,29 +42,23 @@ export function useLessonEngine(currentPage: number, sessionId: string | null) {
 
     setIsGenerating(true);
     setError(null);
-    setLesson(null);
 
     try {
-      console.log('[useLessonEngine] Calling AIService.generateLesson');
-      const result = await AIService.generateLesson(pageImageBase64, pageContextText, provider, apiKey, modelId, baseUrl);
-      console.log('[useLessonEngine] Lesson generated successfully. Saving to state.');
-      setLesson(result);
-      
-      // Save to cache
-      console.log(`[useLessonEngine] Saving lesson to IndexedDB cache for page ${currentPage}, session ${sessionId}`);
-      
-      await db.lessons.put({
-        bookId: sessionId,
+      const result = await LessonModule.getLesson({
+        sessionId,
         pageNumber: currentPage,
-        content: result,
-        generatedAt: Date.now()
+        pageImageBase64,
+        pageContextText,
+        provider,
+        apiKey,
+        modelId,
+        baseUrl,
+        forceRefresh: true // Explicitly requested by user action
       });
-      
-      console.log('[useLessonEngine] Lesson saved to IndexedDB cache successfully.');
+      setLesson(result);
     } catch (err: any) {
-      console.error('[useLessonEngine] Error caught during generation:', err);
-      const errorMessage = err?.message || err?.toString() || 'Unknown error occurred.';
-      setError(`Error: ${errorMessage}. Check console logs for details.`);
+      console.error('[useLessonEngine] Error:', err);
+      setError(`Error: ${err?.message || 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
