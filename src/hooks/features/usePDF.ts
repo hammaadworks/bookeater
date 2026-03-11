@@ -20,8 +20,32 @@ export function usePDF() {
   const [pageContextText, setPageContextText] = useState<string>('');
   const [isRendering, setIsRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [textPages, setTextPages] = useState<string[]>([]);
   
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(() => localStorage.getItem(CURRENT_SESSION_KEY));
+
+  const paginateText = useCallback((text: string, linesPerPage: number = 100) => {
+    const blocks = text.split(/(?:\r?\n){2,}/);
+    const pages: string[] = [];
+    let currentPageText = '';
+    let currentLines = 0;
+
+    for (const block of blocks) {
+      const blockLines = block.split(/\r?\n/).length + 1;
+      if (currentLines + blockLines > linesPerPage && currentLines > 0) {
+        pages.push(currentPageText.trim());
+        currentPageText = block + '\n\n';
+        currentLines = blockLines;
+      } else {
+        currentPageText += block + '\n\n';
+        currentLines += blockLines;
+      }
+    }
+    if (currentPageText.trim()) {
+      pages.push(currentPageText.trim());
+    }
+    return pages.length > 0 ? pages : [''];
+  }, []);
 
   // Automatically fetch sorted sessions from Dexie
   const sessions = useLiveQuery(
@@ -120,42 +144,106 @@ export function usePDF() {
       const fileData = await db.bookFiles.get(sessionId);
       if (!fileData) throw new Error("PDF data not found in DB");
 
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(fileData.data) });
-      const pdf = await loadingTask.promise;
-      
-      setPdfDoc(pdf);
-      setTotalPages(pdf.numPages);
-      
       setCurrentSessionId(sessionId);
       localStorage.setItem(CURRENT_SESSION_KEY, sessionId);
       
-      // session.currentPage was added in new schema, fallback to 1
       const pageToRender = session.currentPage || 1;
-      await renderPage(pdf, pageToRender, sessionId);
+      const fullBookName = session.bookName || session.name || '';
+      const isPdf = fullBookName.toLowerCase().endsWith('.pdf');
+      const isImage = fullBookName.match(/\.(png|jpe?g|gif|webp|svg|bmp)$/i);
+
+      if (isPdf) {
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(fileData.data) });
+        const pdf = await loadingTask.promise;
+        
+        setPdfDoc(pdf);
+        setTotalPages(pdf.numPages);
+        
+        await renderPage(pdf, pageToRender, sessionId);
+      } else if (isImage) {
+        setPdfDoc(null);
+        setTotalPages(1);
+        setCurrentPage(1);
+        
+        const blob = new Blob([fileData.data]);
+        const dataUrl = URL.createObjectURL(blob);
+        setPageImage(dataUrl);
+        setPageContextText('Image file');
+        setTextPages([]);
+      } else {
+        setPdfDoc(null);
+        setPageImage(null);
+        
+        try {
+           const text = new TextDecoder().decode(fileData.data);
+           const pages = paginateText(text);
+           setTextPages(pages);
+           setTotalPages(pages.length);
+           
+           const validPage = Math.min(Math.max(pageToRender, 1), pages.length);
+           setCurrentPage(validPage);
+           setPageContextText(pages[validPage - 1] || '');
+        } catch {
+           const errMsg = `File content for ${session.name} cannot be displayed.`;
+           setTextPages([errMsg]);
+           setTotalPages(1);
+           setCurrentPage(1);
+           setPageContextText(errMsg);
+        }
+      }
     } catch (err: any) {
       console.error('Failed to load session:', err);
       setError(err.message);
     }
-  }, [renderPage]);
+  }, [renderPage, paginateText]);
 
   const loadPDF = useCallback(async (file: File, wrapId: string = 'default') => {
     try {
       const arrayBuffer = await file.arrayBuffer();
       // Clone buffer to avoid detachment issues
-      const bufferForPdf = arrayBuffer.slice(0);
       const bufferForDb = arrayBuffer.slice(0);
 
       const sessionId = crypto.randomUUID();
-
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(bufferForPdf) });
-      const pdf = await loadingTask.promise;
+      const isPdf = file.name.toLowerCase().endsWith('.pdf');
+      const isImage = file.name.match(/\.(png|jpe?g|gif|webp|svg|bmp)$/i) || file.type.startsWith('image/');
       
+      let totalPages = 1;
+      let pdf: pdfjsLib.PDFDocumentProxy | null = null;
+      let textPagesArr: string[] = [];
+
+      if (isPdf) {
+        const bufferForPdf = arrayBuffer.slice(0);
+        const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(bufferForPdf) });
+        pdf = await loadingTask.promise;
+        totalPages = pdf.numPages;
+      } else if (isImage) {
+        totalPages = 1;
+      } else {
+        try {
+           const text = new TextDecoder().decode(bufferForDb);
+           textPagesArr = paginateText(text);
+           totalPages = textPagesArr.length;
+        } catch {
+           textPagesArr = [`File content for ${file.name} cannot be displayed.`];
+           totalPages = 1;
+        }
+      }
+
+      const generateSessionName = () => {
+        const adjectives = ["Insightful", "Quick", "Deep", "Morning", "Evening", "Focused", "Casual", "Intense", "Smart", "Creative"];
+        const nouns = ["Study", "Reading", "Exploration", "Dive", "Review", "Session", "Analysis", "Learning", "Notes"];
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        return `${adj} ${noun}`;
+      };
+
       const newSession: BookSession = {
         id: sessionId,
         wrapId: wrapId,
-        name: file.name,
+        name: generateSessionName(),
+        bookName: file.name,
         lastOpened: Date.now(),
-        totalPages: pdf.numPages,
+        totalPages: totalPages,
         currentPage: 1,
       };
 
@@ -168,27 +256,67 @@ export function usePDF() {
       setCurrentSessionId(sessionId);
       localStorage.setItem(CURRENT_SESSION_KEY, sessionId);
 
-      setPdfDoc(pdf);
-      setTotalPages(pdf.numPages);
-      setError(null);
-      await renderPage(pdf, 1, sessionId);
+      if (isPdf && pdf) {
+        setPdfDoc(pdf);
+        setTotalPages(pdf.numPages);
+        setError(null);
+        await renderPage(pdf, 1, sessionId);
+      } else if (isImage) {
+        setPdfDoc(null);
+        const blob = new Blob([bufferForDb], { type: file.type || 'image/png' });
+        const dataUrl = URL.createObjectURL(blob);
+        setPageImage(dataUrl);
+        setTextPages([]);
+        setTotalPages(1);
+        setCurrentPage(1);
+        setPageContextText('Image file');
+        setError(null);
+      } else {
+        setPdfDoc(null);
+        setPageImage(null);
+        setTextPages(textPagesArr);
+        setTotalPages(textPagesArr.length);
+        setCurrentPage(1);
+        setPageContextText(textPagesArr[0] || '');
+        setError(null);
+      }
     } catch (err: any) {
       console.error('PDF Load Error:', err);
-      setError(err.message || 'Failed to load PDF');
+      setError(err.message || 'Failed to load file');
     }
-  }, [renderPage]);
+  }, [renderPage, paginateText]);
 
   const goToNextPage = useCallback(() => {
-    if (pdfDoc && currentPage < totalPages && !isRendering && currentSessionId) {
-      renderPage(pdfDoc, currentPage + 1, currentSessionId);
+    if (currentPage < totalPages && !isRendering && currentSessionId) {
+      const nextPage = currentPage + 1;
+      if (pdfDoc) {
+        renderPage(pdfDoc, nextPage, currentSessionId);
+      } else if (textPages.length > 0) {
+        setCurrentPage(nextPage);
+        setPageContextText(textPages[nextPage - 1] || '');
+        db.books.update(currentSessionId, {
+          currentPage: nextPage,
+          lastOpened: Date.now()
+        });
+      }
     }
-  }, [pdfDoc, currentPage, totalPages, isRendering, renderPage, currentSessionId]);
+  }, [pdfDoc, currentPage, totalPages, isRendering, renderPage, currentSessionId, textPages]);
 
   const goToPrevPage = useCallback(() => {
-    if (pdfDoc && currentPage > 1 && !isRendering && currentSessionId) {
-      renderPage(pdfDoc, currentPage - 1, currentSessionId);
+    if (currentPage > 1 && !isRendering && currentSessionId) {
+      const prevPage = currentPage - 1;
+      if (pdfDoc) {
+        renderPage(pdfDoc, prevPage, currentSessionId);
+      } else if (textPages.length > 0) {
+        setCurrentPage(prevPage);
+        setPageContextText(textPages[prevPage - 1] || '');
+        db.books.update(currentSessionId, {
+          currentPage: prevPage,
+          lastOpened: Date.now()
+        });
+      }
     }
-  }, [pdfDoc, currentPage, isRendering, renderPage, currentSessionId]);
+  }, [pdfDoc, currentPage, isRendering, renderPage, currentSessionId, textPages]);
 
   const updateSession = useCallback(async (id: string, updates: Partial<BookSession>) => {
     try {

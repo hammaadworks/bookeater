@@ -2,6 +2,7 @@ export interface BookSession {
   id: string;          // UUID
   wrapId: string;      // Parent Wrap ID (can be 'default' if not in a wrap)
   name: string;
+  bookName?: string;   // The original file name
   author?: string;
   totalPages: number;
   currentPage: number; // Current progress
