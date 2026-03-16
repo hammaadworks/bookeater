@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Volume2, Pause, Play, X, Menu } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, Pause, Play, X, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface SourceHeaderProps {
   currentPage: number;
@@ -8,6 +8,7 @@ interface SourceHeaderProps {
   isReaderMode: boolean;
   isPaused: boolean;
   hasLesson: boolean;
+  isSidebarCollapsed?: boolean;
   onPrevPage: () => void;
   onNextPage: () => void;
   onReadPage: () => void;
@@ -15,6 +16,7 @@ interface SourceHeaderProps {
   onPause: () => void;
   onCloseReader: () => void;
   onToggleSidebar?: () => void;
+  onToggleSidebarDesktop?: () => void;
 }
 
 export const SourceHeader: React.FC<SourceHeaderProps> = ({
@@ -25,6 +27,7 @@ export const SourceHeader: React.FC<SourceHeaderProps> = ({
   isReaderMode,
   isPaused,
   hasLesson,
+  isSidebarCollapsed,
   onPrevPage,
   onNextPage,
   onReadPage,
@@ -32,6 +35,7 @@ export const SourceHeader: React.FC<SourceHeaderProps> = ({
   onPause,
   onCloseReader,
   onToggleSidebar,
+  onToggleSidebarDesktop,
 }) => {
   return (
     <header className="h-14 border-b border-zinc-200 flex items-center justify-between px-4 md:px-6 shrink-0">
@@ -42,6 +46,15 @@ export const SourceHeader: React.FC<SourceHeaderProps> = ({
             className="md:hidden p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
           >
             <Menu size={20} />
+          </button>
+        )}
+        {onToggleSidebarDesktop && (
+          <button 
+            onClick={onToggleSidebarDesktop}
+            className="hidden md:flex p-2 -ml-2 text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
+            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </button>
         )}
         <h1 className="font-semibold text-zinc-800 text-sm hidden sm:block">

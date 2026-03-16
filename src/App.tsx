@@ -41,6 +41,7 @@ function App() {
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isReaderMode, setIsReaderMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeWrapId, setActiveWrapId] = useState<string | undefined>(undefined);
@@ -117,20 +118,26 @@ function App() {
         />
       )}
 
-      <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <Sidebar 
-          sessions={sessions}
-          wraps={wraps}
-          currentSessionId={currentSessionId}
-          onSessionSelect={(id) => { loadSession(id); setIsSidebarOpen(false); }}
-          onSettingsClick={() => { setIsSettingsOpen(true); setIsSidebarOpen(false); }} 
-          onNewSessionClick={handleFileSelect}
-          onSessionUpdate={updateSession}
-          onSessionDelete={deleteSession}
-          onCreateWrap={createWrap}
-          onUpdateWrap={updateWrap}
-          onDeleteWrap={deleteWrap}
-        />
+      <div 
+        className={`fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out md:relative flex overflow-hidden ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        } ${isSidebarCollapsed ? 'md:w-0' : 'md:w-[260px]'}`}
+      >
+        <div className="w-[260px] shrink-0 h-full">
+          <Sidebar 
+            sessions={sessions}
+            wraps={wraps}
+            currentSessionId={currentSessionId}
+            onSessionSelect={(id) => { loadSession(id); setIsSidebarOpen(false); }}
+            onSettingsClick={() => { setIsSettingsOpen(true); setIsSidebarOpen(false); }} 
+            onNewSessionClick={handleFileSelect}
+            onSessionUpdate={updateSession}
+            onSessionDelete={deleteSession}
+            onCreateWrap={createWrap}
+            onUpdateWrap={updateWrap}
+            onDeleteWrap={deleteWrap}
+          />
+        </div>
       </div>
 
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden w-full">
@@ -143,6 +150,7 @@ function App() {
             isReaderMode={isReaderMode}
             isPaused={isPaused}
             hasLesson={!!lesson}
+            isSidebarCollapsed={isSidebarCollapsed}
             onPrevPage={handlePrevPage}
             onNextPage={handleNextPage}
             onReadPage={handleReadPage}
@@ -150,6 +158,7 @@ function App() {
             onPause={pause}
             onCloseReader={handleCloseReader}
             onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            onToggleSidebarDesktop={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           />
           
           <DocumentViewer 
