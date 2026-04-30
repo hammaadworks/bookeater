@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { Plus, MoreVertical, Edit3, FolderPlus, MessageSquarePlus, ChevronDown, ChevronRight } from 'lucide-react';
 import { BookSession, Wrap } from '../../types/session';
@@ -89,7 +89,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    setDragOverTarget(null);
+    const currentTarget = e.currentTarget;
+    const relatedTarget = e.relatedTarget as Node | null;
+    if (!currentTarget.contains(relatedTarget)) {
+      setDragOverTarget(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, wrapId: string) => {
@@ -164,9 +168,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 const isExpanded = !!expandedWraps[wrap.id];
 
                 return (
-                  <div key={wrap.id} className="flex flex-col">
+                  <div 
+                    key={wrap.id} 
+                    className="flex flex-col"
+                    onDragOver={(e) => handleDragOver(e, wrap.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, wrap.id)}
+                  >
                     <div
-                      className="group relative w-full flex items-center px-3 py-2 rounded-lg text-left transition-all active:scale-[0.98] text-sm text-zinc-300 hover:bg-[#2A2A2A] cursor-pointer"
+                      className={`group relative w-full flex items-center px-3 py-2 rounded-lg text-left transition-all active:scale-[0.98] text-sm text-zinc-300 hover:bg-[#2A2A2A] cursor-pointer ${
+                        dragOverTarget === wrap.id ? 'bg-[#2A2A2A] outline-dashed outline-2 outline-blue-500/50 outline-offset-[-2px]' : ''
+                      }`}
                       onClick={() => toggleWrap(wrap.id)}
                       onTouchStart={() => handleTouchStart(wrap, 'wrap')}
                       onTouchEnd={handleTouchEnd}
@@ -237,11 +249,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 className="flex-1 flex flex-col min-w-0 text-left"
                                 onClick={() => onSessionSelect(session.id)}
                               >
-                                <div className="flex items-center gap-2">
-                                  <span className="truncate">{session.name}</span>
+                                <div className="flex items-center gap-3">
+                                  <div className={`${session.color || 'text-zinc-400'}`}>
+                                    {getIcon(session.icon, 'FileText', 16)}
+                                  </div>
+                                  <span className="truncate font-semibold text-base">{session.name}</span>
                                 </div>
                                 {session.bookName && (
-                                  <span className="text-xs text-zinc-500 truncate mt-0.5">{session.bookName}</span>
+                                  <span className="text-xs text-zinc-500 truncate ml-7 mt-0.5">{session.bookName}</span>
                                 )}
                               </button>
                               
@@ -268,7 +283,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Recents Section */}
           <div 
             className={`mt-6 pb-12 min-h-[100px] rounded-xl transition-all ${dragOverTarget === 'default' ? 'bg-[#202020] outline-dashed outline-2 outline-blue-500/50 outline-offset-2' : ''}`}
-            onDragOver={(e) => handleDragOver(e, 'default')}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverTarget('default');
+            }}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, 'default')}
           >
@@ -309,7 +327,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div className={`${session.color || 'text-zinc-400'}`}>
                         {getIcon(session.icon, 'FileText', 16)}
                       </div>
-                      <span className="truncate">{session.name}</span>
+                      <span className="truncate font-semibold text-base">{session.name}</span>
                     </div>
                     {session.bookName && (
                       <span className="text-xs text-zinc-500 truncate ml-7 mt-0.5">{session.bookName}</span>
@@ -363,14 +381,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           if (editingWrap?.id) {
             onUpdateWrap(editingWrap.id, wrapData);
           } else {
-            await onCreateWrap(wrapData);
-          }
-        }}
-        onDelete={onDeleteWrap}
-      />
-    </>
-  );
-};     } else {
             await onCreateWrap(wrapData);
           }
         }}

@@ -29,6 +29,10 @@ export class BookEaterDB extends Dexie {
       lessons: '[bookId+pageNumber], bookId',
       bookFiles: 'id'
     });
+
+    this.version(2).stores({
+      books: 'id, wrapId, name, bookName, lastOpened'
+    });
   }
 }
 
