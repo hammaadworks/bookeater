@@ -40,14 +40,23 @@ export const SessionEditModal: React.FC<SessionEditModalProps> = ({
   onDelete
 }) => {
   const [sessionName, setSessionName] = useState('');
-  const [bookName, setBookName] = useState('');
+  const [bookNameWithoutExt, setBookNameWithoutExt] = useState('');
+  const [extension, setExtension] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('FileText');
   const [selectedColor, setSelectedColor] = useState('text-zinc-600');
 
   useEffect(() => {
     if (session) {
       setSessionName(session.name || '');
-      setBookName(session.bookName || '');
+      const fullBookName = session.bookName || session.name || '';
+      const lastDot = fullBookName.lastIndexOf('.');
+      if (lastDot !== -1 && lastDot !== 0) {
+        setBookNameWithoutExt(fullBookName.substring(0, lastDot));
+        setExtension(fullBookName.substring(lastDot));
+      } else {
+        setBookNameWithoutExt(fullBookName);
+        setExtension('');
+      }
       setSelectedIcon(session.icon || 'FileText');
       setSelectedColor(session.color || 'text-zinc-600');
     }
@@ -58,7 +67,7 @@ export const SessionEditModal: React.FC<SessionEditModalProps> = ({
   const handleSave = () => {
     onSave(session.id, {
       name: sessionName,
-      bookName: bookName,
+      bookName: extension ? `${bookNameWithoutExt}${extension}` : bookNameWithoutExt,
       icon: selectedIcon,
       color: selectedColor,
     });
@@ -101,13 +110,20 @@ export const SessionEditModal: React.FC<SessionEditModalProps> = ({
           {/* Book Name */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-black">Book Name</label>
-            <input 
-              type="text" 
-              value={bookName}
-              onChange={(e) => setBookName(e.target.value)}
-              placeholder="e.g. Moby Dick"
-              className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
-            />
+            <div className="flex items-center gap-2">
+              <input 
+                type="text" 
+                value={bookNameWithoutExt}
+                onChange={(e) => setBookNameWithoutExt(e.target.value)}
+                placeholder="e.g. Moby Dick"
+                className="w-full p-2.5 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm"
+              />
+              {extension && (
+                <span className="text-sm font-medium text-zinc-500 bg-zinc-100 px-3 py-2.5 rounded-xl border border-zinc-200 shrink-0">
+                  {extension}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Icon Selection */}

@@ -30,6 +30,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     localStorage.setItem(APP_CONFIG.STORAGE_KEYS.PROVIDER, provider);
     localStorage.setItem(APP_CONFIG.STORAGE_KEYS.MODEL, model);
     localStorage.setItem(APP_CONFIG.STORAGE_KEYS.BASE_URL, baseUrl);
+    window.dispatchEvent(new Event('storage'));
     onClose();
   };
 

@@ -1,10 +1,16 @@
 import { BookOpen, UploadCloud } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Lesson } from '../../types/lesson';
 
 interface DocumentViewerProps {
   isReaderMode: boolean;
   lesson: Lesson | null;
   pageImage: string | null;
+  pageContextText?: string;
+  fileName?: string;
   currentPage: number;
   isRendering: boolean;
   isGenerating: boolean;
@@ -17,6 +23,8 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   isReaderMode,
   lesson,
   pageImage,
+  pageContextText,
+  fileName,
   currentPage,
   isRendering,
   isGenerating,
@@ -24,6 +32,14 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   highlightEndIndex,
   onFileSelect,
 }) => {
+  const isMarkdown = fileName?.toLowerCase().endsWith('.md');
+  const isText = fileName?.toLowerCase().endsWith('.txt');
+  const isCode = !isMarkdown && !isText && !!fileName && !!pageContextText;
+
+  const markdownContent = isCode 
+    ? `\`\`\`${fileName?.split('.').pop() || ''}\n${pageContextText}\n\`\`\``
+    : pageContextText;
+
   return (
     <div className="flex-1 overflow-auto p-4 md:p-8 bg-zinc-50/50 flex justify-center items-center">
       {isReaderMode && lesson ? (
@@ -45,6 +61,37 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
             className={`max-w-full max-h-full object-contain shadow-sm ring-1 ring-zinc-200 rounded transition-opacity duration-300 ${isRendering || isGenerating ? 'opacity-50' : 'opacity-100'}`}
           />
         </div>
+      ) : markdownContent ? (
+        <div className="w-full h-full flex justify-center">
+          <div className="w-full max-w-4xl bg-white shadow-sm ring-1 ring-zinc-200 rounded-lg p-6 md:p-10 overflow-auto text-left">
+            <article className="prose prose-zinc prose-sm md:prose-base max-w-none">
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({node, inline, className, children, ...props}: any) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    return !inline && match ? (
+                      <SyntaxHighlighter
+                        style={vscDarkPlus as any}
+                        language={match[1]}
+                        PreTag="div"
+                        {...props}
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    )
+                  }
+                }}
+              >
+                {markdownContent}
+              </ReactMarkdown>
+            </article>
+          </div>
+        </div>
       ) : (
         <div className="w-full max-w-2xl bg-white shadow-sm ring-1 ring-zinc-200 rounded-lg min-h-[300px] flex items-center justify-center text-zinc-400 p-8 md:p-12 h-full">
           <div className="text-center animate-in fade-in zoom-in-95 duration-500">
@@ -56,7 +103,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
               className="px-6 py-3 bg-black text-white font-medium rounded-xl flex items-center gap-2 mx-auto hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-md"
             >
               <UploadCloud size={18} />
-              Choose PDF
+              Choose File
             </button>
           </div>
         </div>
