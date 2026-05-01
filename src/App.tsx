@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePDF } from './hooks/features/usePDF';
 import { useLessonEngine } from './hooks/features/useLessonEngine';
 import { useTTS } from './hooks/features/useTTS';
@@ -57,6 +57,13 @@ function App() {
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.name.match(/\.(mp4|mkv|avi|mov|wmv|flv|webm|exe|msi|bat|sh|bin|app)$/i) || file.type.startsWith('video/')) {
+        alert("Video and executable files are not supported.\n\nSupported files include:\n- PDF Documents (.pdf)\n- Images (.png, .jpg, .gif, .webp)\n- Text & Markdown (.txt, .md)\n- Code Files (.js, .py, .ts, etc.)\n- Documents (.ppt, .doc, etc.)");
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
       loadPDF(file, activeWrapId);
       setIsSidebarOpen(false); // Close sidebar on mobile after selecting a file
     }
@@ -102,7 +109,6 @@ function App() {
         type="file" 
         className="hidden" 
         ref={fileInputRef} 
-        accept="application/pdf" 
         onChange={handleFileChange} 
       />
       <SettingsModal 
@@ -165,6 +171,8 @@ function App() {
             isReaderMode={isReaderMode}
             lesson={lesson}
             pageImage={pageImage}
+            pageContextText={pageContextText}
+            fileName={sessions.find(s => s.id === currentSessionId)?.name}
             currentPage={currentPage}
             isRendering={isRendering}
             isGenerating={isGenerating}

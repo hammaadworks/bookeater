@@ -1,0 +1,21 @@
+Excellent. A Vite React frontend paired with a FastAPI/PostgreSQL backend is incredibly robust, fast, and
+  gives us total control without the overhead of heavy frameworks.
+
+  Here is the initial design for the Picocanvas E-Commerce Platform. Let's review it section by section.
+
+  1. Architecture & Tech Stack
+   * Frontend (Vite + React + Tailwind CSS): We'll use Vite for rapid development. Tailwind will handle the
+     premium, aesthetic UI (vital for selling art). We'll build two distinct areas here:
+       * Storefront: Public-facing landing page, collection pages (like the World Cup exclusive), and
+         checkout flow.
+       * Dashboard: Secure admin area for inventory management and order fulfillment.
+   * Backend (FastAPI + Pydantic + SQLAlchemy): FastAPI will provide high-performance REST APIs. Pydantic
+     ensures strict data validation (crucial for e-commerce), and SQLAlchemy ORM will handle database
+     interactions.
+   * Database (PostgreSQL): Relational data is perfect for the many-to-many relationship between SKUs and
+     Collections.
+   * Payments: Stripe or Razorpay integration (depending on your Indian market preference) handled via the
+     FastAPI backend to ensure secure checkout.
+
+  Does this high-level architecture align with your expectations? Once you approve, I'll show you the
+  specific database model for Collections, SKUs, and Orders.
