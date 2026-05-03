@@ -1,11 +1,12 @@
 import Dexie, { Table } from 'dexie';
 import { Lesson as LessonType } from '../types/lesson';
-import { BookSession, Wrap } from '../types/session';
+import { BookSession, Shelf } from '../types/session';
 
 export interface LessonEntity {
   bookId: string;
   pageNumber: number;
   content: LessonType; // The AI output (JSON)
+  pageSourceText?: string; // OCR'd or extracted text from the source page
   generatedAt: number;
 }
 
@@ -15,7 +16,7 @@ export interface BookFile {
 }
 
 export class BookEaterDB extends Dexie {
-  wraps!: Table<Wrap>;
+  shelves!: Table<Shelf>;
   books!: Table<BookSession>;
   lessons!: Table<LessonEntity>;
   bookFiles!: Table<BookFile>;
@@ -32,6 +33,21 @@ export class BookEaterDB extends Dexie {
 
     this.version(2).stores({
       books: 'id, wrapId, name, bookName, lastOpened'
+    });
+
+    this.version(3).stores({
+      shelves: 'id, name, updatedAt',
+      books: 'id, shelfId, name, bookName, lastOpened'
+    }).upgrade(async tx => {
+      // Migrate wraps to shelves
+      const wraps = await tx.table('wraps').toArray();
+      await tx.table('shelves').bulkAdd(wraps);
+      
+      // Update shelfId in books
+      await tx.table('books').toCollection().modify(book => {
+        book.shelfId = book.wrapId || 'default';
+        delete book.wrapId;
+      });
     });
   }
 }

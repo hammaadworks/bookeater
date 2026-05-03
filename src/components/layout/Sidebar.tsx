@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { Plus, MoreVertical, Edit3, FolderPlus, MessageSquarePlus, ChevronDown, ChevronRight } from 'lucide-react';
-import { BookSession, Wrap } from '../../types/session';
+import { BookSession, Shelf } from '../../types/session';
 import { SessionEditModal } from '../features/SessionEditModal';
-import { WrapEditModal } from '../features/WrapEditModal';
+import { ShelfEditModal } from '../features/ShelfEditModal';
 import { APP_CONFIG } from '../../constants';
 
 // Helper to get icon
@@ -14,34 +14,34 @@ const getIcon = (iconName: string = 'FileText', defaultIcon: string = 'FileText'
 
 interface SidebarProps {
   sessions: BookSession[];
-  wraps: Wrap[];
+  shelves: Shelf[];
   currentSessionId: string | null;
   onSessionSelect: (id: string) => void;
   onSettingsClick: () => void;
-  onNewSessionClick: (wrapId?: string) => void;
+  onNewSessionClick: (shelfId?: string) => void;
   onSessionUpdate: (id: string, updates: Partial<BookSession>) => void;
   onSessionDelete: (id: string) => void;
-  onCreateWrap: (wrap: Omit<Wrap, 'id'>) => Promise<string>;
-  onUpdateWrap: (id: string, updates: Partial<Wrap>) => void;
-  onDeleteWrap: (id: string) => void;
+  onCreateShelf: (shelf: Omit<Shelf, 'id'>) => Promise<string>;
+  onUpdateShelf: (id: string, updates: Partial<Shelf>) => void;
+  onDeleteShelf: (id: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
   sessions, 
-  wraps,
+  shelves,
   currentSessionId, 
   onSessionSelect, 
   onSettingsClick,
   onNewSessionClick,
   onSessionUpdate,
   onSessionDelete,
-  onCreateWrap,
-  onUpdateWrap,
-  onDeleteWrap
+  onCreateShelf,
+  onUpdateShelf,
+  onDeleteShelf
 }) => {
   const [editingSession, setEditingSession] = useState<BookSession | null>(null);
-  const [editingWrap, setEditingWrap] = useState<Partial<Wrap> | null>(null);
-  const [expandedWraps, setExpandedWraps] = useState<Record<string, boolean>>({});
+  const [editingShelf, setEditingShelf] = useState<Partial<Shelf> | null>(null);
+  const [expandedShelves, setExpandedShelves] = useState<Record<string, boolean>>({});
   const [userName, setUserName] = useState('');
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
@@ -56,20 +56,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, []);
 
-  const toggleWrap = (wrapId: string) => {
-    setExpandedWraps(prev => ({
+  const toggleShelf = (shelfId: string) => {
+    setExpandedShelves(prev => ({
       ...prev,
-      [wrapId]: !prev[wrapId]
+      [shelfId]: !prev[shelfId]
     }));
   };
 
   // For long press
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleTouchStart = (item: BookSession | Wrap, type: 'session' | 'wrap') => {
+  const handleTouchStart = (item: BookSession | Shelf, type: 'session' | 'shelf') => {
     timerRef.current = setTimeout(() => {
       if (type === 'session') setEditingSession(item as BookSession);
-      else setEditingWrap(item as Wrap);
+      else setEditingShelf(item as Shelf);
     }, 500); // 500ms long press
   };
 
@@ -96,16 +96,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const handleDrop = (e: React.DragEvent, wrapId: string) => {
+  const handleDrop = (e: React.DragEvent, shelfId: string) => {
     e.preventDefault();
     setDragOverTarget(null);
     const sessionId = e.dataTransfer.getData('text/plain');
     if (sessionId) {
-      onSessionUpdate(sessionId, { wrapId });
+      onSessionUpdate(sessionId, { shelfId });
     }
   };
 
-  const unwrappedSessions = sessions.filter(s => !s.wrapId || s.wrapId === 'default');
+  const unshelvedSessions = sessions.filter(s => !s.shelfId || s.shelfId === 'default');
 
   const displayName = userName.trim() || 'Book Eater';
   const words = displayName.split(' ').filter(Boolean);
@@ -147,14 +147,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         
         <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar">
           
-          {/* Shelves / Wraps Section */}
+          {/* Shelves Section */}
           <div>
             <div className="flex items-center justify-between px-3 mb-2 group">
               <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                 Shelves
               </div>
               <button 
-                onClick={() => setEditingWrap({})}
+                onClick={() => setEditingShelf({})}
                 className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#2A2A2A] rounded-md text-zinc-500 hover:text-white transition-all"
                 title="New Shelf"
               >
@@ -163,53 +163,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="space-y-0.5">
-              {wraps.map(wrap => {
-                const wrapSessions = sessions.filter(s => s.wrapId === wrap.id);
-                const isExpanded = !!expandedWraps[wrap.id];
+              {shelves.map(shelf => {
+                const shelfSessions = sessions.filter(s => s.shelfId === shelf.id);
+                const isExpanded = !!expandedShelves[shelf.id];
 
                 return (
                   <div 
-                    key={wrap.id} 
+                    key={shelf.id} 
                     className="flex flex-col"
-                    onDragOver={(e) => handleDragOver(e, wrap.id)}
+                    onDragOver={(e) => handleDragOver(e, shelf.id)}
                     onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, wrap.id)}
+                    onDrop={(e) => handleDrop(e, shelf.id)}
                   >
                     <div
                       className={`group relative w-full flex items-center px-3 py-2 rounded-lg text-left transition-all active:scale-[0.98] text-sm text-zinc-300 hover:bg-[#2A2A2A] cursor-pointer ${
-                        dragOverTarget === wrap.id ? 'bg-[#2A2A2A] outline-dashed outline-2 outline-blue-500/50 outline-offset-[-2px]' : ''
+                        dragOverTarget === shelf.id ? 'bg-[#2A2A2A] outline-dashed outline-2 outline-blue-500/50 outline-offset-[-2px]' : ''
                       }`}
-                      onClick={() => toggleWrap(wrap.id)}
-                      onTouchStart={() => handleTouchStart(wrap, 'wrap')}
+                      onClick={() => toggleShelf(shelf.id)}
+                      onTouchStart={() => handleTouchStart(shelf, 'shelf')}
                       onTouchEnd={handleTouchEnd}
                       onTouchMove={handleTouchEnd}
                       onContextMenu={(e) => {
                         e.preventDefault();
-                        setEditingWrap(wrap);
+                        setEditingShelf(shelf);
                       }}
                     >
                       <div className="flex-1 flex items-center gap-3 min-w-0">
-                        <div className={`${wrap.color || 'text-zinc-400'}`}>
-                          {getIcon(wrap.icon, 'Folder', 16)}
+                        <div className={`${shelf.color || 'text-zinc-400'}`}>
+                          {getIcon(shelf.icon, 'Folder', 16)}
                         </div>
-                        <span className="truncate">{wrap.name}</span>
+                        <span className="truncate">{shelf.name}</span>
                       </div>
                       
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onNewSessionClick(wrap.id);
+                            onNewSessionClick(shelf.id);
                           }}
                           className="p-1 hover:bg-[#3A3A3A] rounded-md text-zinc-500 hover:text-white mr-1"
-                          title="Add book to wrap"
+                          title="Add book to shelf"
                         >
                           <Plus size={14} />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setEditingWrap(wrap);
+                            setEditingShelf(shelf);
                           }}
                           className="p-1 hover:bg-[#3A3A3A] rounded-md text-zinc-500 hover:text-white"
                         >
@@ -221,13 +221,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </div>
                     </div>
 
-                    {/* Books inside wrap */}
+                    {/* Books inside shelf */}
                     {isExpanded && (
                       <div className="mt-1 mb-2 ml-4 pl-3 border-l border-[#2A2A2A] space-y-0.5">
-                        {wrapSessions.length === 0 ? (
+                        {shelfSessions.length === 0 ? (
                           <div className="text-xs text-zinc-500 px-3 py-1 italic">Empty</div>
                         ) : (
-                          wrapSessions.map(session => (
+                          shelfSessions.map(session => (
                             <div
                               key={session.id}
                               draggable
@@ -294,14 +294,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Recents
             </div>
             
-            {unwrappedSessions.length === 0 && wraps.length === 0 && (
+            {unshelvedSessions.length === 0 && shelves.length === 0 && (
               <div className="text-sm text-zinc-500 px-3 italic">
                 No books uploaded yet.
               </div>
             )}
 
             <div className="space-y-0.5">
-              {unwrappedSessions.map(session => (
+              {unshelvedSessions.map(session => (
                 <div
                   key={session.id}
                   draggable
@@ -372,19 +372,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onDelete={onSessionDelete}
       />
 
-      {/* Wrap Edit Modal */}
-      <WrapEditModal
-        isOpen={!!editingWrap}
-        onClose={() => setEditingWrap(null)}
-        wrap={editingWrap}
-        onSave={async (wrapData) => {
-          if (editingWrap?.id) {
-            onUpdateWrap(editingWrap.id, wrapData);
+      {/* Shelf Edit Modal */}
+      <ShelfEditModal
+        isOpen={!!editingShelf}
+        onClose={() => setEditingShelf(null)}
+        shelf={editingShelf}
+        onSave={async (shelfData) => {
+          if (editingShelf?.id) {
+            onUpdateShelf(editingShelf.id, shelfData);
           } else {
-            await onCreateWrap(wrapData);
+            await onCreateShelf(shelfData);
           }
         }}
-        onDelete={onDeleteWrap}
+        onDelete={onDeleteShelf}
       />
     </>
   );
