@@ -1,4 +1,4 @@
-import { Brain, Loader2, X, ArrowRight, UploadCloud } from 'lucide-react';
+import { Brain, Loader2, X, UploadCloud } from 'lucide-react';
 import { Lesson } from '../../types/lesson';
 import { LessonView } from './LessonView';
 
