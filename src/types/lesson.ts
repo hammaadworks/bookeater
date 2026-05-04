@@ -5,6 +5,7 @@ export const LessonSchema = z.object({
   context: z.string().describe('Brief introduction to the context of this page or section'),
   coreContent: z.string().describe('The primary concept or quote extracted directly from the book page'),
   explanation: z.string().describe('A clear, simple explanation of the core concept. Use analogies if helpful.'),
+  cleanedSourceText: z.string().describe('A cleaned, readable version of the original source text from this page. Remove noise, headers, and broken sentences. Maintain the original meaning but make it pleasant to read.'),
   diagram: z.string().optional().describe('Optional Mermaid diagram syntax to visually explain the concept. Use ONLY if a flowchart, sequence, or mindmap would aid understanding. Return RAW mermaid code without markdown code blocks.'),
   checkpoint: z.object({
     question: z.string().describe('A single multiple-choice question to verify understanding before moving on'),

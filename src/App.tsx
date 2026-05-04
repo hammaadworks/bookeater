@@ -11,15 +11,15 @@ import { LessonPanel } from './components/features/LessonPanel';
 function App() {
   const { 
     sessions,
-    wraps,
+    shelves,
     currentSessionId,
     loadSession,
     loadPDF, 
     updateSession,
     deleteSession,
-    createWrap,
-    updateWrap,
-    deleteWrap,
+    createShelf,
+    updateShelf,
+    deleteShelf,
     pageImage, 
     pageContextText,
     currentPage, 
@@ -35,6 +35,7 @@ function App() {
     resume, 
     stop, 
     isPaused, 
+    currentText,
     highlightStartIndex, 
     highlightEndIndex 
   } = useTTS();
@@ -44,7 +45,7 @@ function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isReaderMode, setIsReaderMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeWrapId, setActiveWrapId] = useState<string | undefined>(undefined);
+  const [activeShelfId, setActiveShelfId] = useState<string | undefined>(undefined);
 
   // Synchronize reader mode with page changes
   useEffect(() => {
@@ -64,14 +65,14 @@ function App() {
         }
         return;
       }
-      loadPDF(file, activeWrapId);
+      loadPDF(file, activeShelfId);
       setIsSidebarOpen(false); // Close sidebar on mobile after selecting a file
     }
     // Clear the input value so the same file can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [loadPDF, activeWrapId]);
+  }, [loadPDF, activeShelfId]);
 
   const handleReadPage = useCallback(() => {
     if (isReaderMode) return;
@@ -97,9 +98,9 @@ function App() {
     goToPrevPage();
   }, [goToPrevPage]);
 
-  const handleFileSelect = useCallback((wrapIdOrEvent?: string | React.MouseEvent) => {
-    const wrapId = typeof wrapIdOrEvent === 'string' ? wrapIdOrEvent : undefined;
-    setActiveWrapId(wrapId);
+  const handleFileSelect = useCallback((shelfIdOrEvent?: string | React.MouseEvent) => {
+    const shelfId = typeof shelfIdOrEvent === 'string' ? shelfIdOrEvent : undefined;
+    setActiveShelfId(shelfId);
     fileInputRef.current?.click();
   }, []);
 
@@ -132,16 +133,16 @@ function App() {
         <div className="w-[260px] shrink-0 h-full">
           <Sidebar 
             sessions={sessions}
-            wraps={wraps}
+            shelves={shelves}
             currentSessionId={currentSessionId}
             onSessionSelect={(id) => { loadSession(id); setIsSidebarOpen(false); }}
             onSettingsClick={() => { setIsSettingsOpen(true); setIsSidebarOpen(false); }} 
             onNewSessionClick={handleFileSelect}
             onSessionUpdate={updateSession}
             onSessionDelete={deleteSession}
-            onCreateWrap={createWrap}
-            onUpdateWrap={updateWrap}
-            onDeleteWrap={deleteWrap}
+            onCreateShelf={createShelf}
+            onUpdateShelf={updateShelf}
+            onDeleteShelf={deleteShelf}
           />
         </div>
       </div>
@@ -179,6 +180,8 @@ function App() {
             highlightStartIndex={highlightStartIndex}
             highlightEndIndex={highlightEndIndex}
             onFileSelect={handleFileSelect}
+            onParagraphClick={play}
+            currentReadingText={currentText}
           />
         </div>
 

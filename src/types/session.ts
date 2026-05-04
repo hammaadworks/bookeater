@@ -1,6 +1,6 @@
 export interface BookSession {
   id: string;          // UUID
-  wrapId: string;      // Parent Wrap ID (can be 'default' if not in a wrap)
+  shelfId: string;     // Parent Shelf ID (can be 'default' if not on a shelf)
   name: string;
   bookName?: string;   // The original file name
   author?: string;
@@ -12,7 +12,7 @@ export interface BookSession {
   metadata?: any;
 }
 
-export interface Wrap {
+export interface Shelf {
   id: string;          // UUID
   name: string;
   color?: string;
