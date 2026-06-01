@@ -34,8 +34,32 @@ export class AIService {
     return openai(modelId || 'gpt-4o');
   }
 
+  static async reconstructTranscript(
+    rawTranscript: string,
+    provider: AIProvider,
+    apiKey: string,
+    modelId?: string,
+    baseUrl?: string
+  ): Promise<string> {
+    try {
+      const model = this.getModel(provider, apiKey, modelId, baseUrl);
+      
+      const { text } = await generateObject({
+        model,
+        schema: LessonSchema.pick({ explanation: true }), // Reuse schema for consistency or use a simpler one
+        system: AI_PROMPTS.RECONSTRUCT_TRANSCRIPT,
+        messages: [{ role: 'user', content: rawTranscript }]
+      }) as any;
+
+      return text || rawTranscript;
+    } catch (error) {
+      this.logError('reconstructTranscript', error);
+      return rawTranscript; // Fallback to raw on error
+    }
+  }
+
   static async generateLesson(
-    pageImageBase64: string,
+    pageImageBase64: string | null,
     pageContextText: string,
     provider: AIProvider,
     apiKey: string,
@@ -46,6 +70,14 @@ export class AIService {
       const model = this.getModel(provider, apiKey, modelId, baseUrl);
       const effectiveModelId = modelId || (provider === AIProvider.GOOGLE ? 'gemini-2.0-flash' : 'gpt-4o');
 
+      const content: any[] = [
+        { type: 'text', text: AI_PROMPTS.USER_PREFIX + pageContextText }
+      ];
+
+      if (pageImageBase64) {
+        content.push({ type: 'image', image: pageImageBase64 });
+      }
+
       const { object, usage, experimental_providerMetadata } = await generateObject({
         model,
         schema: LessonSchema,
@@ -53,10 +85,7 @@ export class AIService {
         messages: [
           {
             role: 'user',
-            content: [
-              { type: 'text', text: AI_PROMPTS.USER_PREFIX + pageContextText },
-              { type: 'image', image: pageImageBase64 }
-            ]
+            content
           }
         ]
       });

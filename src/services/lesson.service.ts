@@ -1,12 +1,12 @@
 import { AIService } from './ai.service';
-import { StorageModule } from './storage.service';
+import { StorageService } from './storage.service';
 import { Lesson } from '../types/lesson';
 import { AIProvider } from '../constants';
 
 export interface LessonRequest {
   sessionId: string;
   pageNumber: number;
-  pageImageBase64: string;
+  pageImageBase64: string | null;
   pageContextText: string;
   provider: AIProvider;
   apiKey: string;

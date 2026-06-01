@@ -62,16 +62,16 @@ export class TTSService {
     this.utterance.onboundary = (event) => {
       if (event.name === 'word') {
         const charIndex = event.charIndex;
+        // Find the end of the current word
+        // A word ends at the next whitespace or punctuation, but for highlighting, it's often best to just highlight until the next space.
         let nextSpaceIndex = text.indexOf(' ', charIndex);
         if (nextSpaceIndex === -1) nextSpaceIndex = text.length;
         
-        const punctuationRegex = /[.,!?;:]/;
-        const match = text.slice(charIndex).match(punctuationRegex);
-        if (match && match.index !== undefined) {
-           const puncIndex = charIndex + match.index;
-           if (puncIndex < nextSpaceIndex) {
-               nextSpaceIndex = puncIndex;
-           }
+        // Let's make it smarter: highlight the actual word characters
+        const remaining = text.slice(charIndex);
+        const match = remaining.match(/[\s.,!?;:]/);
+        if (match && match.index !== undefined && match.index > 0) {
+           nextSpaceIndex = charIndex + match.index;
         }
 
         callbacks.onBoundary?.(charIndex, nextSpaceIndex);
