@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BookSession, Shelf } from '../../types/session';
+import { BookSession, Shelf, SourceType } from '../../types/session';
 import { db } from '../../core/db';
-import { StorageModule } from '../../services/storage.service';
+import { StorageService } from '../../services/storage.service';
 import { ParserModule } from '../../services/parser.service';
+import { AIProvider, APP_CONFIG } from '../../constants';
 
 const CURRENT_SESSION_KEY = 'bookeater_current_session_id';
 
@@ -11,6 +12,7 @@ export function usePDF() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [pageImage, setPageImage] = useState<string | null>(null);
+  const [pageText, setPageText] = useState<string>('');
   const [pageContextText, setPageContextText] = useState<string>('');
   const [isRendering, setIsRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,9 +29,15 @@ export function usePDF() {
       const fileData = await db.bookFiles.get(bookId);
       if (!session || !fileData) throw new Error("Session or file not found");
 
-      const result = await ParserModule.getPage(fileData.data, session.bookName || session.name, pageNum);
+      const result = await ParserModule.getPage(
+        fileData.data, 
+        session.bookName || session.name, 
+        pageNum,
+        session.sourceType
+      );
       setPageImage(result.image);
-      setPageContextText(result.text);
+      setPageText(result.text);
+      setPageContextText(result.contextText);
       setTotalPages(result.totalPages);
       setCurrentPage(pageNum);
       
@@ -58,24 +66,120 @@ export function usePDF() {
   }, [loadPage]);
 
   const loadPDF = useCallback(async (file: File, shelfId: string = 'default') => {
+    setIsRendering(true);
     try {
+      const isVideo = file.name.match(/\.(mp4|mkv|mov|webm)$/i);
       const arrayBuffer = await file.arrayBuffer();
       const id = crypto.randomUUID();
       
+      let sourceType: SourceType = 'file';
+      let bookName = file.name;
+      let finalData: ArrayBuffer = arrayBuffer;
+
+      if (isVideo) {
+        sourceType = 'local-video';
+        const { VideoService } = await import('../../services/video.service');
+        const { AIService } = await import('../../services/ai.service');
+
+        // Extract audio for AI analysis and synced playback
+        const audioBlob = await VideoService.extractAudio(file);
+        const audioBuffer = await audioBlob.arrayBuffer();
+        
+        // Try to generate an initial transcript/index from audio if API key is present
+        const apiKey = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.API_KEY) || import.meta.env.VITE_GEMINI_API_KEY;
+        const provider = (localStorage.getItem(APP_CONFIG.STORAGE_KEYS.PROVIDER) as AIProvider) || AIProvider.GOOGLE;
+        
+        if (apiKey) {
+          // This would ideally send the audio file, but for a tracer bullet, 
+          // we'll assume the AI can reconstruct context if we provide enough metadata
+          // or use the multimodal capabilities of the models.
+          // For now, let's placeholder this with a "Sense-Making" pass.
+          const metadataText = `Video File: ${file.name}, Duration: Unknown. Please provide a structured study guide based on the content.`;
+          const processedText = await AIService.reconstructTranscript(
+            metadataText, 
+            provider, 
+            apiKey
+          );
+          finalData = new TextEncoder().encode(processedText).buffer;
+        } else {
+          finalData = audioBuffer;
+        }
+        
+        bookName = `${file.name} (Audio)`;
+      }
+
       const session: BookSession = {
         id,
         shelfId,
         name: file.name.split('.')[0],
-        bookName: file.name,
+        bookName,
+        sourceType,
         lastOpened: Date.now(),
-        totalPages: 0, // Will be set after first parse
+        totalPages: 0,
         currentPage: 1,
       };
 
-      await StorageService.saveSession(session, arrayBuffer);
+      await StorageService.saveSession(session, finalData);
       await loadSession(id);
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsRendering(false);
+    }
+  }, [loadSession]);
+
+  const loadYoutube = useCallback(async (url: string, shelfId: string = 'default') => {
+    setIsRendering(true);
+    try {
+      const { YoutubeService } = await import('../../services/youtube.service');
+      const { AIService } = await import('../../services/ai.service');
+      
+      const videoId = YoutubeService.extractVideoId(url);
+      if (!videoId) throw new Error("Invalid YouTube URL");
+
+      const metadata = await YoutubeService.getMetadata(videoId);
+      const transcriptData = await YoutubeService.getTranscript(videoId);
+      const rawText = transcriptData.map(t => t.text).join(' ');
+      
+      // Get AI Settings for Reconstruction
+      const apiKey = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.API_KEY) || import.meta.env.VITE_GEMINI_API_KEY;
+      const provider = (localStorage.getItem(APP_CONFIG.STORAGE_KEYS.PROVIDER) as AIProvider) || AIProvider.GOOGLE;
+      const modelId = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.MODEL) || undefined;
+      const baseUrl = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.BASE_URL) || undefined;
+
+      let processedText = rawText;
+      if (apiKey) {
+        // Perform Deep Reconstruction
+        processedText = await AIService.reconstructTranscript(
+          rawText,
+          provider,
+          apiKey,
+          modelId,
+          baseUrl
+        );
+      }
+      
+      const id = crypto.randomUUID();
+      const session: BookSession = {
+        id,
+        shelfId,
+        name: metadata.title,
+        bookName: `YouTube: ${metadata.title}`,
+        sourceType: 'youtube',
+        sourceUrl: url,
+        lastOpened: Date.now(),
+        totalPages: 0,
+        currentPage: 1,
+      };
+
+      // Store transcript as the "file data"
+      const textEncoder = new TextEncoder();
+      await StorageService.saveSession(session, textEncoder.encode(processedText).buffer);
+      await loadSession(id);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsRendering(false);
     }
   }, [loadSession]);
 
@@ -109,9 +213,9 @@ export function usePDF() {
   const deleteShelf = (id: string) => StorageService.deleteShelf(id);
 
   return { 
-    sessions, shelves, currentSessionId, loadSession, loadPDF, 
+    sessions, shelves, currentSessionId, loadSession, loadPDF, loadYoutube,
     updateSession, deleteSession, createShelf, updateShelf, deleteShelf,
-    pageImage, pageContextText, currentPage, totalPages, isRendering, error, 
+    pageImage, pageText, pageContextText, currentPage, totalPages, isRendering, error, 
     goToNextPage, goToPrevPage 
   };
 }

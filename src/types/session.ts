@@ -1,8 +1,12 @@
+export type SourceType = 'file' | 'youtube' | 'local-video';
+
 export interface BookSession {
   id: string;          // UUID
   shelfId: string;     // Parent Shelf ID (can be 'default' if not on a shelf)
   name: string;
-  bookName?: string;   // The original file name
+  sourceType?: SourceType;
+  sourceUrl?: string;  // For YouTube or local blob references
+  bookName?: string;   // The original file name or source title
   author?: string;
   totalPages: number;
   currentPage: number; // Current progress

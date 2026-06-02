@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Lesson } from '../../types/lesson';
 import { AIProvider, APP_CONFIG } from '../../constants';
-import { StorageModule } from '../../services/storage.service';
+import { StorageService } from '../../services/storage.service';
 import { LessonModule } from '../../services/lesson.service';
 
 export function useLessonEngine(currentPage: number, sessionId: string | null) {
@@ -28,7 +28,7 @@ export function useLessonEngine(currentPage: number, sessionId: string | null) {
   }, [currentPage, sessionId]);
 
   const generateLesson = useCallback(async (pageImageBase64: string | null, pageContextText: string = '') => {
-    if (!pageImageBase64 || !sessionId) return;
+    if ((!pageImageBase64 && !pageContextText) || !sessionId) return;
     
     const apiKey = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.API_KEY) || import.meta.env.VITE_GEMINI_API_KEY;
     const provider = (localStorage.getItem(APP_CONFIG.STORAGE_KEYS.PROVIDER) as AIProvider) || AIProvider.GOOGLE;
