@@ -1,4 +1,4 @@
-import { Brain, Loader2, X, UploadCloud } from 'lucide-react';
+import { Brain, Loader2, X, UploadCloud, Volume2, Pause, Play, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import { Lesson } from '../../types/lesson';
 import { LessonView } from './LessonView';
 
@@ -8,8 +8,22 @@ interface LessonPanelProps {
   error: string | null;
   pageImage: string | null;
   pageContextText: string;
+  isSourceCollapsed?: boolean;
+  isReadingLesson?: boolean;
+  isPaused?: boolean;
+  isSidebarCollapsed?: boolean;
+  currentReadingText?: string;
+  highlightStartIndex?: number;
+  highlightEndIndex?: number;
+  isMobile?: boolean;
   onGenerate: (contextText: string) => void;
   onNextPage: () => void;
+  onReadLesson?: () => void;
+  onResume?: () => void;
+  onPause?: () => void;
+  onStop?: () => void;
+  onToggleSourcePane?: () => void;
+  onToggleSidebarDesktop?: () => void;
 }
 
 export const LessonPanel: React.FC<LessonPanelProps> = ({
@@ -18,20 +32,91 @@ export const LessonPanel: React.FC<LessonPanelProps> = ({
   error,
   pageImage,
   pageContextText,
+  isSourceCollapsed,
+  isReadingLesson,
+  isPaused,
+  isSidebarCollapsed,
+  currentReadingText,
+  highlightStartIndex,
+  highlightEndIndex,
+  isMobile,
   onGenerate,
   onNextPage,
+  onReadLesson,
+  onResume,
+  onPause,
+  onStop,
+  onToggleSourcePane,
+  onToggleSidebarDesktop,
 }) => {
   return (
-    <div className="w-full h-1/2 md:h-full md:w-[450px] lg:w-[500px] flex flex-col bg-white shrink-0 border-t md:border-t-0 md:border-l border-zinc-200">
-      <header className="h-14 border-b border-zinc-200 flex items-center justify-between px-6 shrink-0 bg-white">
-        <h2 className="font-semibold text-zinc-800 text-sm flex items-center gap-2">
-          <Brain size={16} className="text-blue-600" />
-          Learning Module
-        </h2>
+    <div className={`w-full flex flex-col bg-white shrink-0 relative ${isMobile ? 'h-full' : 'md:h-full md:w-[450px] lg:w-[500px] border-l border-zinc-200'}`}>
+      <header className="h-14 border-b border-zinc-200 flex items-center justify-between px-4 md:px-6 shrink-0 bg-white">
+        <div className="flex items-center gap-2 min-w-0">
+          {!isMobile && isSourceCollapsed && onToggleSidebarDesktop && (
+            <button 
+              onClick={onToggleSidebarDesktop}
+              className="hidden md:flex p-1 -ml-2 text-zinc-500 hover:text-black hover:bg-zinc-100 rounded-lg transition-colors shrink-0"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isSidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+            </button>
+          )}
+          {!isMobile && onToggleSourcePane && (
+            <button 
+              onClick={onToggleSourcePane}
+              className={`hidden md:flex p-1 ${isSourceCollapsed ? 'mr-2' : '-ml-2 mr-2'} text-zinc-500 hover:text-black hover:bg-zinc-100 rounded-lg transition-colors shrink-0`}
+              title={isSourceCollapsed ? "Expand Source Pane" : "Collapse Source Pane"}
+            >
+              {isSourceCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+            </button>
+          )}
+          <h2 className="font-semibold text-zinc-800 text-sm flex items-center gap-1.5 truncate">
+            <Brain size={16} className="text-blue-600 shrink-0" />
+            <span className="truncate">Learning Module</span>
+          </h2>
+        </div>
+
+        {lesson && onReadLesson && (
+          <div className="shrink-0 flex items-center ml-2">
+            {isReadingLesson ? (
+              <div className="flex items-center gap-1 bg-blue-50 px-1 py-1 rounded-lg border border-blue-100 shrink-0">
+                <button 
+                  onClick={isPaused ? onResume : onPause}
+                  className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors px-2 py-1 rounded-md hover:bg-blue-100 uppercase tracking-wider"
+                >
+                  {isPaused ? <Play size={14} /> : <Pause size={14} />}
+                  <span className="hidden sm:inline">{isPaused ? 'Resume' : 'Pause'}</span>
+                </button>
+                <button 
+                  onClick={onStop}
+                  className="p-1.5 text-blue-400 hover:text-blue-500 transition-colors rounded hover:bg-blue-100"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={onReadLesson}
+                className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:border-blue-200 uppercase tracking-wider shrink-0"
+                title="Read lesson aloud"
+              >
+                <Volume2 size={14} className="shrink-0" />
+                <span className="hidden sm:inline">Read Lesson</span>
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       {lesson ? (
-        <LessonView lesson={lesson} onNextPage={onNextPage} />
+        <LessonView 
+          lesson={lesson} 
+          onNextPage={onNextPage} 
+          currentReadingText={currentReadingText}
+          highlightStartIndex={highlightStartIndex}
+          highlightEndIndex={highlightEndIndex}
+        />
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-zinc-50/30">
           {isGenerating ? (
@@ -54,7 +139,7 @@ export const LessonPanel: React.FC<LessonPanelProps> = ({
                 Try Again
               </button>
             </div>
-          ) : pageImage ? (
+          ) : (pageImage || pageContextText) ? (
             <div className="space-y-6">
               <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto text-blue-600 shadow-sm border border-blue-100">
                 <Brain size={32} />

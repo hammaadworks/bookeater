@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import * as Icons from 'lucide-react';
-import { Plus, MoreVertical, Edit3, FolderPlus, MessageSquarePlus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, MoreVertical, Edit3, FolderPlus, ChevronDown, ChevronRight } from 'lucide-react';
 import { BookSession, Shelf } from '../../types/session';
-import { SessionEditModal } from '../features/SessionEditModal';
-import { ShelfEditModal } from '../features/ShelfEditModal';
 import { APP_CONFIG } from '../../constants';
 
 // Helper to get icon
@@ -24,6 +22,8 @@ interface SidebarProps {
   onCreateShelf: (shelf: Omit<Shelf, 'id'>) => Promise<string>;
   onUpdateShelf: (id: string, updates: Partial<Shelf>) => void;
   onDeleteShelf: (id: string) => void;
+  onSessionEdit: (session: BookSession) => void;
+  onShelfEdit: (shelf: Partial<Shelf>) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -34,13 +34,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSettingsClick,
   onNewSessionClick,
   onSessionUpdate,
-  onSessionDelete,
-  onCreateShelf,
-  onUpdateShelf,
-  onDeleteShelf
+  onSessionEdit,
+  onShelfEdit
 }) => {
-  const [editingSession, setEditingSession] = useState<BookSession | null>(null);
-  const [editingShelf, setEditingShelf] = useState<Partial<Shelf> | null>(null);
   const [expandedShelves, setExpandedShelves] = useState<Record<string, boolean>>({});
   const [userName, setUserName] = useState('');
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
@@ -68,8 +64,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleTouchStart = (item: BookSession | Shelf, type: 'session' | 'shelf') => {
     timerRef.current = setTimeout(() => {
-      if (type === 'session') setEditingSession(item as BookSession);
-      else setEditingShelf(item as Shelf);
+      if (type === 'session') onSessionEdit(item as BookSession);
+      else onShelfEdit(item as Shelf);
     }, 500); // 500ms long press
   };
 
@@ -131,15 +127,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* New Book Button */}
+        {/* New Source Button */}
         <div className="px-3 py-2">
           <button 
             onClick={() => onNewSessionClick()}
             className="w-full flex items-center justify-between px-3 py-2.5 bg-[#202020] hover:bg-[#2A2A2A] active:scale-[0.98] transition-all rounded-xl text-white text-sm font-medium border border-[#2A2A2A]"
           >
             <div className="flex items-center gap-3">
-              <MessageSquarePlus size={16} />
-              <span>Add Book</span>
+              <Icons.Video size={16} />
+              <span>Add Source</span>
             </div>
             <Edit3 size={16} className="text-zinc-400" />
           </button>
@@ -154,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Shelves
               </div>
               <button 
-                onClick={() => setEditingShelf({})}
+                onClick={() => onShelfEdit({})}
                 className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#2A2A2A] rounded-md text-zinc-500 hover:text-white transition-all"
                 title="New Shelf"
               >
@@ -185,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onTouchMove={handleTouchEnd}
                       onContextMenu={(e) => {
                         e.preventDefault();
-                        setEditingShelf(shelf);
+                        onShelfEdit(shelf);
                       }}
                     >
                       <div className="flex-1 flex items-center gap-3 min-w-0">
@@ -209,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setEditingShelf(shelf);
+                            onShelfEdit(shelf);
                           }}
                           className="p-1 hover:bg-[#3A3A3A] rounded-md text-zinc-500 hover:text-white"
                         >
@@ -242,7 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               onTouchMove={handleTouchEnd}
                               onContextMenu={(e) => {
                                 e.preventDefault();
-                                setEditingSession(session);
+                                onSessionEdit(session);
                               }}
                             >
                               <button
@@ -263,7 +259,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setEditingSession(session);
+                                  onSessionEdit(session);
                                 }}
                                 className="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#3A3A3A] rounded-md text-zinc-500 hover:text-white transition-all absolute right-2"
                               >
@@ -316,7 +312,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onTouchMove={handleTouchEnd}
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    setEditingSession(session);
+                    onSessionEdit(session);
                   }}
                 >
                   <button
@@ -337,7 +333,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setEditingSession(session);
+                      onSessionEdit(session);
                     }}
                     className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-[#3A3A3A] rounded-md text-zinc-500 hover:text-white transition-all absolute right-2"
                   >
@@ -362,30 +358,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
       </nav>
-
-      {/* Session Edit Modal */}
-      <SessionEditModal 
-        isOpen={!!editingSession}
-        onClose={() => setEditingSession(null)}
-        session={editingSession}
-        onSave={onSessionUpdate}
-        onDelete={onSessionDelete}
-      />
-
-      {/* Shelf Edit Modal */}
-      <ShelfEditModal
-        isOpen={!!editingShelf}
-        onClose={() => setEditingShelf(null)}
-        shelf={editingShelf}
-        onSave={async (shelfData) => {
-          if (editingShelf?.id) {
-            onUpdateShelf(editingShelf.id, shelfData);
-          } else {
-            await onCreateShelf(shelfData);
-          }
-        }}
-        onDelete={onDeleteShelf}
-      />
     </>
   );
 };
