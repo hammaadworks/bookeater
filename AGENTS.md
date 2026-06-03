@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**bookeater** is a modern learning platform that transforms static documents (PDFs, images, text) into interactive, AI-powered lessons. It focuses on local-first persistence using IndexedDB and leverages AI to generate explanations, diagrams, and checkpoints for specific document sections.
+**bookeater** is a modern learning platform that transforms static documents (PDFs, images, text) into interactive, AI-powered lessons. It follows a **"Tool for Thought"** philosophy, where AI acts as an **Agent Provocateur** to foster active reading and critical thinking, rather than just summarizing content.
 
 ### Key Technologies
 - **Frontend**: React 18 (TypeScript), Vite
@@ -71,7 +71,7 @@
 - **UX Rule**: Always give the best user experience possible, intuitive and accessible from the user's POV.
 - **Responsive Rule**: The UI must be adaptive to any screen (mobile to desktop), ensuring no overflow on any given resolution using relevant CSS strategies.
 - **Persistence**: All user data should persist locally. Avoid external servers for user data storage.
-- **AI**: Use structured outputs (Zod) when interacting with AI services to ensure data integrity.
+- **AI**: Use structured outputs (Zod) when interacting with AI services. The AI must adopt an **Agent Provocateur** persona: prioritize challenging the user, asking Socratic questions, and providing "productive resistance" over simple summarization.
 
 ## Pull Request Guidelines
 

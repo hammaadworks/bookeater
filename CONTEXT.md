@@ -1,34 +1,39 @@
-# bookeater
+# BookEater Context
 
-A modern learning platform that transforms static documents into interactive, AI-powered lessons.
+## Design Philosophy: AI as an Agent Provocateur
+
+BookEater follows a **"Tool for Thought"** philosophy, inspired by researchers like Advait Sarkar. Unlike AI "Assistants" that summarize content to save time (often at the cost of critical thinking), BookEater aims to protect and enhance human intelligence through the following principles:
+
+- **Active Reading First**: The goal is for the user to do the actual reading, page by page. AI should never be used to bypass the material.
+- **Productive Resistance**: The AI acts as an **Agent Provocateur**. It provides "friction" by asking challenging questions, offering critiques, and forcing the user to engage deeply with the text.
+- **Anti-Outsourcing**: We prevent users from becoming "middle managers for their own thoughts." AI is used to stimulate metacognition, not to provide pre-digested answers.
+- **Page-by-Page Engagement**: Learning happens in the struggle with the material. AI-generated lessons (Explanations, Diagrams, Checkpoints) are designed to provoke thought about the *current* page, not to summarize the entire book.
 
 ## Domain Language
 
-### Shelf
-A container or category used to organize multiple **Sessions**. Think of it as a physical bookshelf that holds multiple books.
+- **Shelf**: A container or category used to organize multiple Sessions.
+- **Session (LearningSession)**: A learning journey tied to a specific source. Tracks progress and metadata.
+- **Source**: Any learning material supported by the system (PDF, Image, Text, YouTube Video, Local Video).
+- **Virtual Book**: The internal representation of non-paginated sources (like videos or long text) as a series of logical pages.
+- **Transcript Reconstruction**: The AI process of transforming raw, messy, or vernacular speech from videos/audio into structured, textbook-quality content.
+- **Lesson**: An AI-generated learning unit (Explanation, Diagram, Checkpoint) derived from a Source page.
+- **Source Pane**: Displays the original document (Page View or Text View). Can be collapsed to focus on the lesson.
+- **Lesson Pane**: Displays the AI-generated learning unit. Can be collapsed to focus on the source document.
 
-### Session (BookSession)
-A learning journey tied to a specific document (PDF, image, text). It tracks the learner's progress, including the current page and metadata about the book. A **Shelf** contains many **Sessions**.
+## Architecture
 
-### Lesson
-An AI-generated learning unit derived from a specific page or section of a **Session**.
-- **Explanation**: A simplified breakdown of the concepts.
-- **Diagram**: A visual representation (Mermaid) of the lesson's core concept.
-- **Checkpoint**: A quiz to validate comprehension before proceeding.
+- **Storage Module**: Manages local-first persistence in IndexedDB.
+- **Parser Module**: A multi-modal adapter system that transforms raw data (PDFs, Transcripts, Images) into a unified Page interface.
+- **AI Service**: Orchestrates interactions with LLMs (Google Gemini, OpenAI) for lesson generation and transcript reconstruction.
+- **Media System**: Leverages `ffmpeg.wasm` for local video audio extraction and `youtube-transcript` for video ingestion.
 
-### Reader Mode
-An immersive state where the **Lesson** content is displayed prominently and can be narrated via **Text-to-Speech (TTS)**.
+## Design Decisions (ADRs)
 
-## Architectural Modules
+### ADR 000: UI & UX Standards
+The application's visual design, color palette, and interaction patterns are strictly governed by the constraints defined in `docs/UI_GUIDELINES.md`. All new components must adhere to the 'Dark Mode (OLED)' and 'Content First' principles outlined there.
 
-### Document System
-The overarching system that manages sessions from upload to display.
+### ADR 001: Audio-First Deep Learning for Video
+We prioritize audio/transcripts over video streaming for learning. Videos are "Bookified" into Virtual Books to maintain a consistent UX and focus on high-density information transfer.
 
-### Storage Module
-A deep module that handles binary persistence and metadata integrity (Sessions, Shelves, Lessons) in IndexedDB. It hides the complexity of database transactions and provides a unified interface for session management.
-
-### Parser Module
-A deep module that transforms raw binary data into a unified **Page** interface (image + text). It is decoupled from persistence, allowing it to render various file formats (PDF, Image, Text) using specialized adapters.
-
-### Lesson Module
-A deep module that orchestrates the **Lesson** lifecycle. It leverages the **Storage Module** for caching and the **AI Service** for generation, providing a high-leverage interface for retrieving lessons.
+### ADR 002: Local-First Media Processing
+Local videos are processed in-browser using FFmpeg WASM to maintain privacy and offline capability.
